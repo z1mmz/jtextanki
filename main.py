@@ -8,6 +8,9 @@ import random
 import genanki
 import sys
 import os
+import wanakana
+
+print_plaintext('澱んだ街角で僕らは出会った')
 
 card_data = {}
 
@@ -46,7 +49,8 @@ if __name__ == '__main__':
         file_name = os.path.basename(sys.argv[1])
         title =os.path.splitext(file_name)[0]
         text = file.read()
-        print(text)
+        # text = "焦がす"
+        # print(text)
         words = set()
         deck = genanki.Deck(
         random.randrange(1 << 30, 1 << 31),
@@ -57,13 +61,57 @@ if __name__ == '__main__':
                 nagisa.filter(text, filter_postags=['助詞', '助動詞']).words):
             words.add(word)
         for word in words:
+            print('----------------------------------------------------')
             try:
-                print(word)
+            
                 x = requests.get(f"https://jisho.org/api/v1/search/words?keyword={word}").json()['data'][0]
                 # Get dict form, reading and meaning from jisho
+                furi_word = ''
                 word = x['japanese'][0]['word']
-                reading = f"{word}[{x['japanese'][0]['reading']}]"
+                w_p = 0
+                r_p = 0
+                reading = x['japanese'][0]['reading']
                 meaning = ', '.join(x['senses'][0]['english_definitions'])
+                furi_open = False
+                
+                print(f"word: {word}")
+                print(f"reading: {reading}")
+
+                while len(word) > w_p:
+                    # if non kanji add to str
+                    if not wanakana.is_kanji(word[w_p]):
+                        furi_word +=word[w_p]
+                        w_p+=1
+                        r_p+=1
+                    else:
+                        #if kanji find next non kanji and match it to reading 
+                        s_p = w_p
+                        next_nk = ''
+                        while len(word) > s_p and next_nk == '':
+                            if not wanakana.is_kanji(word[s_p]):
+                                next_nk = word[s_p]
+                            else:
+                                furi_word += word[s_p]
+                            s_p += 1
+                        furi_word += '['
+                        while next_nk != reading[r_p]:
+                            furi_word += reading[r_p]
+                            if next_nk == reading[r_p]:
+                                    furi_word += reading[r_p]
+                                    break
+                            if len(reading) -1 > r_p:
+                                r_p +=1
+                            else: 
+                                break
+                    
+                        furi_word += ']' 
+                        if next_nk != '':
+                            furi_word +=next_nk
+                        w_p = s_p
+                print(f"Furiganad: {furi_word}")
+                        
+
+
                 #Create card
                 note = genanki.Note(
                     model=card_model,
@@ -71,6 +119,6 @@ if __name__ == '__main__':
                 #Add card to deck
                 deck.add_note(note)
             except Exception as e:
-                print(e)
+                raise(e)
 
         genanki.Package(deck).write_to_file(f'{title}.apkg')

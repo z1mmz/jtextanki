@@ -10,7 +10,6 @@ import sys
 import os
 import wanakana
 
-print_plaintext('澱んだ街角で僕らは出会った')
 
 card_data = {}
 
@@ -20,18 +19,20 @@ card_model = genanki.Model(
   fields=[
     {'name': 'meaning'},
     {'name': 'reading'},
+    {'name': 'reading_kana'},
   ],
   templates=[
     {
-      'name': 'meaning to reading',
-      'qfmt': '{{meaning}}',
-      'afmt': '{{FrontSide}}<hr id="answer">{{furigana:reading}}',
+      'name': 'reading to meaning',
+      'qfmt': '{{furigana:reading}}<br/>{{reading_kana}}',
+      'afmt': '{{FrontSide}}<hr id="answer">{{meaning}}',
     },
     {
-      'name': 'reading to meaning',
-      'qfmt': '{{furigana:reading}}',
-      'afmt': '{{FrontSide}}<hr id="answer">{{meaning}}',
+      'name': 'meaning to reading',
+      'qfmt': '{{meaning}}',
+      'afmt': '{{FrontSide}}<hr id="answer">{{furigana:reading}}<br/>{{reading_kana}}',
     }
+
   ],
   css=""".card {
  font-family: helvetica;
@@ -87,24 +88,30 @@ if __name__ == '__main__':
                         #if kanji find next non kanji and match it to reading 
                         s_p = w_p
                         next_nk = ''
+                        kanj_c = 0
                         while len(word) > s_p and next_nk == '':
                             if not wanakana.is_kanji(word[s_p]):
                                 next_nk = word[s_p]
                             else:
+                                kanj_c += 1
                                 furi_word += word[s_p]
                             s_p += 1
-                        furi_word += '['
-                        while next_nk != reading[r_p]:
-                            furi_word += reading[r_p]
-                            if next_nk == reading[r_p]:
-                                    furi_word += reading[r_p]
+                        furigana = ""
+                        print(kanj_c)
+                        while True:
+                            
+                            if next_nk == reading[r_p] and len(furigana) >= kanj_c:
+                                    # furigana += reading[r_p]
                                     break
-                            if len(reading) -1 > r_p:
+                            furigana += reading[r_p]
+                            if len(reading)-1 > r_p:
+                                
                                 r_p +=1
                             else: 
                                 break
-                    
-                        furi_word += ']' 
+
+                        furi_word += f'[{furigana}]' 
+                            
                         if next_nk != '':
                             furi_word +=next_nk
                         w_p = s_p
@@ -115,10 +122,10 @@ if __name__ == '__main__':
                 #Create card
                 note = genanki.Note(
                     model=card_model,
-                    fields=[meaning, reading])
+                    fields=[meaning, furi_word,reading])
                 #Add card to deck
                 deck.add_note(note)
             except Exception as e:
-                raise(e)
+                print(e)
 
         genanki.Package(deck).write_to_file(f'{title}.apkg')
